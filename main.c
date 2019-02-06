@@ -124,8 +124,8 @@ int main()
 		
 	}
 //	char buffer[33];
-	pthread_t t; // 宣告 pthread 變數
-	pthread_t t2; //
+	pthread_t t; 	//first thread UI
+	pthread_t t2; 	//second thread monitoring
 	
 	printf("Loading configurations...\n");
 	FILE *fp=fopen("device.txt", "r");//open the txt file that contains the data of the devices
@@ -205,8 +205,8 @@ int main()
 
 	}
 	
-	pthread_join(t, NULL); 		// 等待子執行緒執行完成
-	pthread_join(t2, NULL); 		// 等待子執行緒執行完成
+	pthread_join(t, NULL); 		//wait for thread 1
+	pthread_join(t2, NULL); 	//wait for thread 2
 	
 	
 	
