@@ -1,3 +1,8 @@
+/*
+	created by Haowei Zhu on 2019.2.5
+	
+
+*/
 #define HAVE_STRUCT_TIMESPEC
 #include <pthread.h>
 #ifdef __unix__
@@ -14,7 +19,7 @@
 #pragma comment(lib, "User32.lib")
 #define KEY_DOWN(VK_NONAME) ((GetAsyncKeyState(VK_NONAME) & 0x8000) ? 1:0)
 
-int mode=1;
+int mode=1;	//mode 1: operating, mode 0: pausing, mode 2: stopping and waiting to exit
 int cycle=1;
 int x=0;
 int active=0;
@@ -22,13 +27,10 @@ int rate;	//rate of monitoring
 int current=0;
 int pause=0;
 int next=0;
+
+
 // add Mutex for data modifying
 pthread_mutex_t mutex1 = PTHREAD_MUTEX_INITIALIZER;
-
-
-int tempscan(int x);
-
-void clrscr();	//clear screen function
 
 struct Device{
 	char name[33];
@@ -46,20 +48,26 @@ struct para{
 	int live;
 };
 
+int tempscan(int x);
+void clrscr();	//clear screen function
 void printstatus(int a,int b, int c);
 char readstring();
 int readnumber();
 int check(char c);
 void printprogress(int now);
-
-
+void welcome();
+void logo();
+void buttommsg();
 
 void* UI(void* data) {
   // char *str = (char*) data; 
 	struct para *result=(struct para*)data;	//input data
 //	for(int i = 0;i < 5;++i) {
 	while (mode!=2){
+		
+		//Normal UI for the programme
 		clrscr();
+		logo();
 		
 		//check out which device will be checked next
 		if (current == (active-1)){
@@ -70,6 +78,7 @@ void* UI(void* data) {
 //			printf("next is %d",result[current+1].device);
 		}
 		
+		printf("Devices current status:\n");
 		for (int j=0;j<active;j++){
 			
 			pthread_mutex_lock( &mutex1 ); // Mutex lock
@@ -77,6 +86,10 @@ void* UI(void* data) {
 			result[j].live++;	//update the time for 1 second
 			pthread_mutex_unlock( &mutex1 ); // Mutex unlock
 		}
+		buttommsg();
+		
+		printf("\nImportant messages:\n");
+		
 //		printf("hi %d\nlive %d ago\n",result[i].device,result[i].fault); 	//Output in CMD every second
 		
 		sleep(1);
@@ -84,6 +97,7 @@ void* UI(void* data) {
 	
 	//Display for stopping the programme
 	clrscr();
+	logo();
 	printprogress(NULL);
 	
 	pthread_exit(NULL); 	//exit the thread
@@ -129,7 +143,7 @@ void* read(void* data){		//the thread that use for comparing the temperature of 
 				} 
 				break;
 			}
-			sleep(rate);
+			sleep(rate);	//break time between each device
 			
 		}	
 //		pthread_mutex_lock( &mutex1 ); // Mutex lock
@@ -169,11 +183,13 @@ int main()
 //	char buffer[33];
 	pthread_t t; 	//first thread UI
 	pthread_t t2; 	//second thread monitoring
+	
+	welcome();
 	while (1){
 //		clrscr();
 		
 		printf("Loading configurations...\n");
-//		sleep(1);
+		sleep(1);
 //		while(1){
 		FILE *fp=fopen("device.txt", "r");//open the txt file that contains the data of the devices
 //		while(1){
@@ -231,10 +247,17 @@ int main()
 		}
 		fclose(fp);
 		
+
+		
 		while(1){
-			printf("Please confirm the configurations. Enter Y to continue or N to reload configurations:");
+			printf("Please confirm the device configurations. Enter Y to continue or N to reload:");
+			
+			
+			
 			scanf_s("%s",&buffer);
 //			strcpy(buffer, readstring());
+
+
 			if (buffer[0]=='Y'){
 				break;
 		
@@ -252,6 +275,9 @@ int main()
 		}
 	}		
 	
+	/* end of device configurations part */
+	
+	printf("Would you like to load the rest of configurations from TXT file or enter them manually? Enter ");
 	printf("Please enter the amount of device that would like to monitor:");
 	scanf_s("%d",&active);
 	while (active>x){
@@ -398,6 +424,30 @@ void printprogress(int now){
 			printf("Programme stopped");
 			break;
 		
+	}
+	
+}
+
+void welcome(){
+	clrscr();
+	printf("Thank you for using Cooloo Device Monitoring Software\n");
+	printf(" ######   #######   #######  ##        #######   #######  \n##    ## ##     ## ##     ## ##       ##     ## ##     ## \n##       ##     ## ##     ## ##       ##     ## ##     ## \n##       ##     ## ##     ## ##       ##     ## ##     ## \n##       ##     ## ##     ## ##       ##     ## ##     ## \n##    ## ##     ## ##     ## ##       ##     ## ##     ## \n ######   #######   #######  ########  #######   #######  \n");
+	printf("Cooloo Version 1.0 Created by Haowei Zhu\n");
+	
+}
+
+void logo(){
+	printf("Cooloo V1.0\n");
+}
+
+void buttommsg(){
+	switch(mode){
+		case 1:
+			printf("\nPress P key at any time during the operating to PAUSE the programme.\nPress S key at any time during the operating to STOP the programme.\n");
+			break;
+		case 0:
+			printf("Press R key at any time to RESUME.\nPress S key at any time to STOP the programme.\n");
+			break;
 	}
 	
 }
