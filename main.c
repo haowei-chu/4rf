@@ -11,6 +11,9 @@
 //#include "fun.h"
 #include <string.h>
 #pragma comment(lib,"x86/pthreadVC2.lib")
+#pragma comment(lib, "User32.lib")
+#define KEY_DOWN(VK_NONAME) ((GetAsyncKeyState(VK_NONAME) & 0x8000) ? 1:0)
+
 int mode=1;
 int cycle=1;
 int x=0;
@@ -44,6 +47,7 @@ struct para{
 void printstatus(int a,int b, int c);
 char readstring();
 int readnumber();
+int check(char c);
 
 
 void* UI(void* data) {
@@ -129,13 +133,36 @@ int main()
 	pthread_t t; 	//first thread UI
 	pthread_t t2; 	//second thread monitoring
 	while (1){
+//		clrscr();
+		
 		printf("Loading configurations...\n");
+//		sleep(1);
+//		while(1){
 		FILE *fp=fopen("device.txt", "r");//open the txt file that contains the data of the devices
-		if(NULL == fp)	//check if the file is exising
-		{
-			printf("the device file is not exist\n");
-		}
-		// else {
+//		while(1){
+			if(NULL == fp){	//check if the file is not existing
+			
+				printf("the device file is not exist\n");
+//				fclose(fp);
+				
+				// while (1){
+					// printf("Please place the device.txt file in the same folder with this programme, and Enter T to reload.\n");
+					// scanf_s("%s",&buffer);
+					// if(buffer[0]=='T'){
+						
+						// FILE *fp=fopen("device.txt", "r");//open the txt file that contains the data of the devices
+						// break;
+					// }else{
+						// printf("Invalid.\n");
+						// continue; 
+						
+					// }
+				// }	
+			// }else{
+				// break;
+			}
+//		}
+			// else {
 			// fseek (fp, 0, SEEK_END);	//check if the file is empty
 			// c = ftell(fp);
 		// }
@@ -146,6 +173,11 @@ int main()
 		// if(NULL = fgetc(fp)){
 			// printf("the device file is empty\n");
 		// }
+		
+		
+		
+		
+		
 		fscanf_s(fp,"%d",&x);	//how many devices we r entering
 		if (x>10){
 			printf("no more than 10 device\n");
@@ -157,7 +189,7 @@ int main()
 			fscanf(fp,"%s",&list[i].name); 
 			fscanf_s(fp,"%d",&list[i].tempup);
 			fscanf_s(fp,"%d",&list[i].templow);
-			printf("Device %d is: %s with upper temperature limit of %d and lower temperature limit of %d \n" , i , list[i].name, list[i].tempup,list[i].templow);
+			printf("Device %d is: %s with upper temperature limit of %d and lower temperature limit of %d \n" , (i+1) , list[i].name, list[i].tempup,list[i].templow);
 			
 		}
 		fclose(fp);
@@ -168,17 +200,18 @@ int main()
 //			strcpy(buffer, readstring());
 			if (buffer[0]=='Y'){
 				break;
-				break;
-				
+		
 			}else if (buffer[0]=='N'){
 				break;
-				continue;
 				
 			}else{
 				printf("Invalid. Please enter again\n");
 				continue;
 			}
 			
+		}
+		if (buffer[0]=='Y'){
+			break;
 		}
 	}		
 	
@@ -213,15 +246,21 @@ int main()
 	pthread_create(&t, NULL, UI, &result); 	//create thread to continuously print out the monitoring result
 	pthread_create(&t2,NULL, read, &result);	//create thread to continuously check the temperature data
 	while (1){
-		for (i=0;i<active;i++){
+		check('K');
+		Sleep(20);
+		
+		
+		
+		
+//		for (i=0;i<active;i++){
 //			temp=tempscan(number[i]);
 //			temp=tempscan(result[i].device);	//read the temperature data from device
 //			if (temp>=list[i])
 //			clrscr();
 //			printf("tempeture is %d\n",temp);
 			
-			sleep(rate);
-		}
+//			sleep(rate);
+//		}
 
 	}
 	
@@ -251,8 +290,14 @@ void clrscr(){
 }
 
 void printstatus(int a,int b, int c){
-	printf("device %d is %d live %d\n",a,b,c);
-	
+	if (b==-1){
+		printf("Device %d status is unknown\n",a);
+	}else if (b==1){
+		printf("Device %d is working fine. Last update %d seconds ago\n",a,c);
+		
+	}else{
+		printf("Device %d is not working fine. Last update %d seconds ago\n",a,c);
+	}
 }
 
 
@@ -265,4 +310,14 @@ int readnumber(){
 	int temp;
 	scanf_s("%d",&active);
 	return temp;
+}
+
+int check(char c){//检测某个按键是否按下，按下就改变输出颜色
+	if(!KEY_DOWN(c)){
+		
+		return 0;
+	}else {
+		printf("K is pressed\n");
+		return 1;
+	}
 }
