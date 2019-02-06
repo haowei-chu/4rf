@@ -20,6 +20,8 @@ int x=0;
 int active=0;
 int rate;	//rate of monitoring
 int current=0;
+int pause=0;
+int next=0;
 // add Mutex for data modifying
 pthread_mutex_t mutex1 = PTHREAD_MUTEX_INITIALIZER;
 
@@ -48,24 +50,32 @@ void printstatus(int a,int b, int c);
 char readstring();
 int readnumber();
 int check(char c);
+void printprogress(int now);
+
 
 
 void* UI(void* data) {
-  // char *str = (char*) data; // 取得輸入資料
+  // char *str = (char*) data; 
 	struct para *result=(struct para*)data;	//input data
 //	for(int i = 0;i < 5;++i) {
 	while (1){
 		clrscr();
-		printf("Current progress: ");
-		if (mode==1){
-			printf("Cycles %d checking %d\n",cycle,current);
+		
+		//check out which device will be checked next
+		if (current == (active-1)){
+			printprogress(result[0].device);
+//			printf("next is %d",result[0].device);
 		}else{
-			printf("Pausing\n");
+			printprogress(result[current+1].device);
+//			printf("next is %d",result[current+1].device);
 		}
+		
 		for (int j=0;j<active;j++){
 			
-			printstatus(result[j].device,result[j].fault,result[j].live);			
-			result[j].live++;
+			pthread_mutex_lock( &mutex1 ); // Mutex lock
+			printstatus(result[j].device,result[j].fault,result[j].live);	//print the status out		
+			result[j].live++;	//update the time for 1 second
+			pthread_mutex_unlock( &mutex1 ); // Mutex unlock
 		}
 //		printf("hi %d\nlive %d ago\n",result[i].device,result[i].fault); 	//Output in CMD every second
 		
@@ -74,11 +84,14 @@ void* UI(void* data) {
 	pthread_exit(NULL); 	//exit the thread
 }
 
-void* read(void* data){
+void* read(void* data){		//the thread that use for comparing the temperature of the device and the limits
 	struct para *result=(struct para*)data;	//input data
-	while (1){
-		for (int i=0;i<active;i++){
-			current=result[i].device;
+	int temp2=next;
+	while (mode==1){
+//		next=0;
+		for (int i=temp2;i<active;i++){
+			
+//			current=result[i].device;
 	//			temp=tempscan(number[i]);
 			int temp=tempscan(result[i].device);	//read the temperature data from device
 //			printf("%d %d %d \n",temp,list[result[i].device-1].templow,list[result[i].device-1].tempup);
@@ -86,6 +99,8 @@ void* read(void* data){
 			//check if the temp is in the range
 			
 			pthread_mutex_lock( &mutex1 ); // Mutex lock
+			current=i;
+			//compare the temperature data
 			if (temp>=list[result[i].device-1].templow && temp<=list[result[i].device-1].tempup){	
 				result[i].fault=1;
 			}else{
@@ -96,11 +111,28 @@ void* read(void* data){
 			
 	//			clrscr();
 //			printf("tempeture is %d\n",temp);
-			
+//			printf("b\n");
+			if (mode==0) {
+//				printf("a\n");
+				if ((current+1)==active){
+					next=0;
+				}else{
+					next=current+1;
+					pthread_mutex_lock( &mutex1 ); // Mutex lock
+					cycle--;
+					pthread_mutex_unlock( &mutex1 ); // Mutex unlock
+				} 
+				break;
+			}
 			sleep(rate);
 			
 		}	
+//		pthread_mutex_lock( &mutex1 ); // Mutex lock
 		cycle++;
+//		printf("finish one cycle\n");
+//		pthread_mutex_unlock( &mutex1 ); // Mutex unlock
+//		sleep(1);
+		temp2=0;
 	}	
 	
 	pthread_exit(NULL);
@@ -247,10 +279,24 @@ int main()
 	pthread_create(&t2,NULL, read, &result);	//create thread to continuously check the temperature data
 	while (1){
 		check('K');
+		if (check('P')==1){
+			if (mode==1) mode=0;
+//			sleep(2);
+		}
+		
+		if (check('R')==1){
+			while (check('R')==1){
+				
+			}
+			if (mode==0){
+				
+				mode=1;
+				printf("back to mode 1\n");
+			}
+			pthread_create(&t2,NULL, read, &result);	//create thread to continuously check the temperature data
+//			Sleep(2);
+		}
 		Sleep(20);
-		
-		
-		
 		
 //		for (i=0;i<active;i++){
 //			temp=tempscan(number[i]);
@@ -312,12 +358,29 @@ int readnumber(){
 	return temp;
 }
 
-int check(char c){//检测某个按键是否按下，按下就改变输出颜色
+int check(char c){	//
 	if(!KEY_DOWN(c)){
 		
 		return 0;
 	}else {
-		printf("K is pressed\n");
+
+//		printf("buttom is pressed\n");
 		return 1;
 	}
+}
+
+void printprogress(int now){
+	printf("Current progress: ");
+	switch(mode){
+		case 1:
+			printf("Cycles %d waiting to check device %d\n",cycle,now);
+			break;
+			
+		case 0:
+			printf("Pausing\n");
+			break;
+		
+		
+	}
+	
 }
