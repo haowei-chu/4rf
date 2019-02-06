@@ -31,7 +31,6 @@ struct Device{
 	int templow;//lower temperature 
 	/*
 	others can be added here in the future 
-
 	*/
 };
 struct Device list[10];	//create an array for the device
@@ -43,6 +42,9 @@ struct para{
 };
 
 void printstatus(int a,int b, int c);
+char readstring();
+int readnumber();
+
 
 void* UI(void* data) {
   // char *str = (char*) data; // 取得輸入資料
@@ -106,7 +108,7 @@ int main()
 	//create variables
 //	int x;	//how many devices
 	int i;	
-
+	char buffer[100];
 //	int active;	//
 	int temp;
 //	int c;
@@ -126,41 +128,59 @@ int main()
 //	char buffer[33];
 	pthread_t t; 	//first thread UI
 	pthread_t t2; 	//second thread monitoring
-	
-	printf("Loading configurations...\n");
-	FILE *fp=fopen("device.txt", "r");//open the txt file that contains the data of the devices
-	if(NULL == fp)	//check if the file is exising
-	{
-		printf("the device file is not exist\n");
-	}
-	// else {
-		// fseek (fp, 0, SEEK_END);	//check if the file is empty
-		// c = ftell(fp);
-	// }
-    // if (0 == c) {
-        // printf("file is empty\n");
-    // }
-	
-	// if(NULL = fgetc(fp)){
-		// printf("the device file is empty\n");
-	// }
-	fscanf_s(fp,"%d",&x);	//how many devices we r entering
-	if (x>10){
-		printf("no more than 10 device\n");
-	}
-	printf("There are %d devices details loaded\n" , x);
-
-	
-	for (i=0;i<x;i++){	//load the config for each device
-		fscanf(fp,"%s",&list[i].name); 
-		fscanf_s(fp,"%d",&list[i].tempup);
-		fscanf_s(fp,"%d",&list[i].templow);
-		printf("Device %d is: %s with upper temperature limit of %d and lower temperature limit of %d \n" , i , list[i].name, list[i].tempup,list[i].templow);
+	while (1){
+		printf("Loading configurations...\n");
+		FILE *fp=fopen("device.txt", "r");//open the txt file that contains the data of the devices
+		if(NULL == fp)	//check if the file is exising
+		{
+			printf("the device file is not exist\n");
+		}
+		// else {
+			// fseek (fp, 0, SEEK_END);	//check if the file is empty
+			// c = ftell(fp);
+		// }
+		// if (0 == c) {
+			// printf("file is empty\n");
+		// }
 		
-	}
-	fclose(fp);
-	
-	printf("Please confirm the configurations. Enter Y to continue or N to reload configurations:")
+		// if(NULL = fgetc(fp)){
+			// printf("the device file is empty\n");
+		// }
+		fscanf_s(fp,"%d",&x);	//how many devices we r entering
+		if (x>10){
+			printf("no more than 10 device\n");
+		}
+		printf("There are %d devices details loaded\n" , x);
+
+		
+		for (i=0;i<x;i++){	//load the config for each device
+			fscanf(fp,"%s",&list[i].name); 
+			fscanf_s(fp,"%d",&list[i].tempup);
+			fscanf_s(fp,"%d",&list[i].templow);
+			printf("Device %d is: %s with upper temperature limit of %d and lower temperature limit of %d \n" , i , list[i].name, list[i].tempup,list[i].templow);
+			
+		}
+		fclose(fp);
+		
+		while(1){
+			printf("Please confirm the configurations. Enter Y to continue or N to reload configurations:");
+			scanf_s("%s",&buffer);
+//			strcpy(buffer, readstring());
+			if (buffer[0]=='Y'){
+				break;
+				break;
+				
+			}else if (buffer[0]=='N'){
+				break;
+				continue;
+				
+			}else{
+				printf("Invalid. Please enter again\n");
+				continue;
+			}
+			
+		}
+	}		
 	
 	printf("Please enter the amount of device that would like to monitor:");
 	scanf_s("%d",&active);
@@ -233,4 +253,16 @@ void clrscr(){
 void printstatus(int a,int b, int c){
 	printf("device %d is %d live %d\n",a,b,c);
 	
+}
+
+
+char readstring(){
+	char temp;
+	scanf_s("%s",&temp);
+	return temp;
+}
+int readnumber(){
+	int temp;
+	scanf_s("%d",&active);
+	return temp;
 }
