@@ -58,7 +58,7 @@ void* UI(void* data) {
   // char *str = (char*) data; 
 	struct para *result=(struct para*)data;	//input data
 //	for(int i = 0;i < 5;++i) {
-	while (1){
+	while (mode!=2){
 		clrscr();
 		
 		//check out which device will be checked next
@@ -81,6 +81,11 @@ void* UI(void* data) {
 		
 		sleep(1);
 	}
+	
+	//Display for stopping the programme
+	clrscr();
+	printprogress(NULL);
+	
 	pthread_exit(NULL); 	//exit the thread
 }
 
@@ -291,12 +296,22 @@ int main()
 			if (mode==0){
 				
 				mode=1;
-				printf("back to mode 1\n");
+				pthread_create(&t2,NULL, read, &result);	//create thread to continuously check the temperature data
+//				printf("back to mode 1\n");
 			}
-			pthread_create(&t2,NULL, read, &result);	//create thread to continuously check the temperature data
+
 //			Sleep(2);
 		}
+		
+		if (check ('S')==1){
+			mode=2;
+			
+			
+			break;
+		}
 		Sleep(20);
+		
+		
 		
 //		for (i=0;i<active;i++){
 //			temp=tempscan(number[i]);
@@ -315,7 +330,7 @@ int main()
 	
 	
 	
-	printf("Hello World!");
+//	printf("Hello World!");
 	return 0;
 }
 
@@ -379,7 +394,9 @@ void printprogress(int now){
 		case 0:
 			printf("Pausing\n");
 			break;
-		
+		case 2:
+			printf("Programme stopped");
+			break;
 		
 	}
 	
