@@ -13,17 +13,20 @@
 #endif
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 //#include "fun.h"
 #include <string.h>
 #pragma comment(lib,"x86/pthreadVC2.lib")
 #pragma comment(lib, "User32.lib")
 #define KEY_DOWN(VK_NONAME) ((GetAsyncKeyState(VK_NONAME) & 0x8000) ? 1:0)
 
+
 int mode=1;	//mode 1: operating, mode 0: pausing, mode 2: stopping and waiting to exit
 int cycle=1;
 int x=0;
 int active=0;
 int rate;	//rate of monitoring
+int rate2;	//gap between each cycle
 int current=0;
 int pause=0;
 int next=0;
@@ -44,7 +47,7 @@ struct Device list[10];	//create an array for the device
 
 struct para{
 	int device;
-	int fault;
+	int fault;	//-1 unknown, 0 fault, 1 working fine
 	int live;
 };
 
@@ -58,6 +61,7 @@ void printprogress(int now);
 void welcome();
 void logo();
 void buttommsg();
+void errormsg(int a);
 
 void* UI(void* data) {
   // char *str = (char*) data; 
@@ -119,12 +123,85 @@ void* read(void* data){		//the thread that use for comparing the temperature of 
 			
 			pthread_mutex_lock( &mutex1 ); // Mutex lock
 			current=i;
-			//compare the temperature data
-			if (temp>=list[result[i].device-1].templow && temp<=list[result[i].device-1].tempup){	
-				result[i].fault=1;
-			}else{
-				result[i].fault=0;
+			
+			//case switching to check temperature, check the original status first
+			
+			switch (result[i].fault){
+				
+				//if the status is unknown
+				case -1:
+					if (temp>=list[result[i].device-1].templow && temp<=list[result[i].device-1].tempup){	//check if the temp is inside the limits
+						
+						//if inside the limits
+						result[i].fault=1;
+					}else{
+						
+						//if outside
+						result[i].fault=0;
+						
+						/*
+						
+						//print error messages
+						
+						*/
+					}
+					break;
+					
+				//if its originally outside the limits
+				case 0:
+					if (temp>=list[result[i].device-1].templow && temp<=list[result[i].device-1].tempup){	//check if the temp is inside the limits
+						
+						//if inside the limits
+						result[i].fault=1;
+						
+						/*
+						
+						
+						print update messages
+						
+						
+						*/
+						
+					}else{
+						
+						//if still outside
+						
+						//do nothing
+//						result[i].fault=0;
+						
+					}				
+				
+				
+					break;
+				
+
+				//if originally at working temperature
+				case 1:
+					if (temp>=list[result[i].device-1].templow && temp<=list[result[i].device-1].tempup){	//check if the temp is inside the limits
+						
+						//if still inside the limits
+						
+						//do nothing
+//						result[i].fault=1;
+					}else{
+						
+						//if changed to outside
+						result[i].fault=0;
+						
+						/*
+						
+						//print error messages
+						
+						*/
+						
+					}					
+				
+					break;
+			
+
 			}
+			/*  end of the checking temperature process*/
+			
 			result[i].live=0;
 			pthread_mutex_unlock( &mutex1 ); // Mutex unlock
 			
@@ -152,6 +229,7 @@ void* read(void* data){		//the thread that use for comparing the temperature of 
 //		pthread_mutex_unlock( &mutex1 ); // Mutex unlock
 //		sleep(1);
 		temp2=0;
+		sleep(rate2-rate);
 	}	
 	
 	pthread_exit(NULL);
@@ -277,7 +355,10 @@ int main()
 	
 	/* end of device configurations part */
 	
-	printf("Would you like to load the rest of configurations from TXT file or enter them manually? Enter ");
+	
+	/* start of entering rest of config*/
+	
+//	printf("Would you like to load the rest of configurations from TXT file or enter them manually? Enter ");
 	printf("Please enter the amount of device that would like to monitor:");
 	scanf_s("%d",&active);
 	while (active>x){
@@ -299,9 +380,30 @@ int main()
 //		number[i]=temp;
 		result[i].device=temp;
 	}
-	printf("Please enter the rate of monitoring(by seconds):");
-	scanf_s("%d",&rate);
-
+	
+	//entering rate of monitoring
+	while (1){
+		printf("Please enter the rate of monitoring(by seconds),equal or greater than 1:");
+		scanf_s("%d",&rate);
+		if (rate>=1){
+			break;
+		}else{
+			printf("Invalid. Please enter again.\n");
+			continue;
+		}			
+	}
+	
+	//
+	while (1){
+		printf("Please enter the the gap time between each cycle(by seconds), larger or equal to rate of monitoring:");
+		scanf_s("%d",&rate2);
+		if (rate2>=rate){
+			break;
+		}else{
+			printf("Invalid. Please enter again.\n");
+			continue;
+		}				
+	}
 	
 //	tempscan(3);
 	
@@ -309,7 +411,9 @@ int main()
 	pthread_create(&t, NULL, UI, &result); 	//create thread to continuously print out the monitoring result
 	pthread_create(&t2,NULL, read, &result);	//create thread to continuously check the temperature data
 	while (1){
-		check('K');
+//		check('K');
+
+		//checking P Key
 		if (check('P')==1){
 			if (mode==1) mode=0;
 //			sleep(2);
@@ -329,7 +433,7 @@ int main()
 //			Sleep(2);
 		}
 		
-		if (check ('S')==1){
+		if (check ('S')==1 && check('T')==1){
 			mode=2;
 			
 			
@@ -443,11 +547,23 @@ void logo(){
 void buttommsg(){
 	switch(mode){
 		case 1:
-			printf("\nPress P key at any time during the operating to PAUSE the programme.\nPress S key at any time during the operating to STOP the programme.\n");
+			printf("\nPress P key at any time during the operating to PAUSE the programme.\nPress S and T key at the same time during the operating to STOP the programme.\n");
 			break;
 		case 0:
-			printf("Press R key at any time to RESUME.\nPress S key at any time to STOP the programme.\n");
+			printf("Press R key at any time to RESUME.\nPress S and T key at the same time to STOP the programme.\n");
 			break;
 	}
+	
+}
+
+void errormsg(int a){
+	switch (a){
+		case 1:
+			break;
+		
+		
+		
+	}
+	
 	
 }
