@@ -30,6 +30,9 @@ int rate2;	//gap between each cycle
 int current=0;
 int pause=0;
 int next=0;
+char msg[10][100];
+int msgp=0;
+
 
 
 // add Mutex for data modifying
@@ -62,11 +65,14 @@ void welcome();
 void logo();
 void buttommsg();
 void errormsg(int a);
+void writemsg(int device, int good,int type);
 
 void* UI(void* data) {
   // char *str = (char*) data; 
 	struct para *result=(struct para*)data;	//input data
 //	for(int i = 0;i < 5;++i) {
+	
+	//while loop to display UI during the operation
 	while (mode!=2){
 		
 		//Normal UI for the programme
@@ -92,8 +98,15 @@ void* UI(void* data) {
 		}
 		buttommsg();
 		
-		printf("\nImportant messages:\n");
 		
+		/*Print out the lastest 10 alert messages here */
+		/*
+		printf("\nImportant messages(latest 10 if more than 10):\n");
+		for (int j=0;j<10;j++){
+			printf("%s\n",msg[j]);
+			
+		}
+		*/
 //		printf("hi %d\nlive %d ago\n",result[i].device,result[i].fault); 	//Output in CMD every second
 		
 		sleep(1);
@@ -124,7 +137,7 @@ void* read(void* data){		//the thread that use for comparing the temperature of 
 			pthread_mutex_lock( &mutex1 ); // Mutex lock
 			current=i;
 			
-			//case switching to check temperature, check the original status first
+			/*case switching to check temperature, check the original status first*/
 			
 			switch (result[i].fault){
 				
@@ -144,6 +157,7 @@ void* read(void* data){		//the thread that use for comparing the temperature of 
 						//print error messages
 						
 						*/
+						writemsg(result[i].device,0,1);
 					}
 					break;
 					
@@ -155,12 +169,10 @@ void* read(void* data){		//the thread that use for comparing the temperature of 
 						result[i].fault=1;
 						
 						/*
-						
-						
-						print update messages
-						
-						
+						print update messages						
 						*/
+						writemsg(result[i].device,1,1);
+						
 						
 					}else{
 						
@@ -193,7 +205,7 @@ void* read(void* data){		//the thread that use for comparing the temperature of 
 						//print error messages
 						
 						*/
-						
+						writemsg(result[i].device,0,1);
 					}					
 				
 					break;
@@ -201,6 +213,9 @@ void* read(void* data){		//the thread that use for comparing the temperature of 
 
 			}
 			/*  end of the checking temperature process*/
+			
+			
+			/* Can implement other features here such as checking memory usage */
 			
 			result[i].live=0;
 			pthread_mutex_unlock( &mutex1 ); // Mutex unlock
@@ -252,12 +267,17 @@ int main()
 	struct para result[10];
 	for (i=0;i<10;i++){
 		result[i].fault=-1;
-		
-	}
-	for (i=0;i<10;i++){
 		result[i].live=0;
+		strcpy(msg[i],"hi");
 		
 	}
+	
+	// for (i=0;i<10;i++){
+		// result[i].live=0;
+		
+	// }
+	
+	
 //	char buffer[33];
 	pthread_t t; 	//first thread UI
 	pthread_t t2; 	//second thread monitoring
@@ -464,7 +484,26 @@ int main()
 	return 0;
 }
 
+
+/* temperature sensing function*/
+
+	/* 
+	input: Device number
+	output:  Device current temperature
+	*/
 int tempscan(int n){
+	/*
+	
+	currently the function is simulating the device temperature from a local txt file
+	Future implementation: Please replace the entire function with proper communication functions: 
+	1.setting up transmission protocols between the programme and the target device
+	2.sending command messages to the target device
+	3.wait for target device to response
+	4.retrieve the temperature data from target device.
+	5.return the data
+	
+	*/
+	
 	FILE *fp=fopen("temp.txt", "r");
 	int i=0;
 	int c;
@@ -540,6 +579,7 @@ void welcome(){
 	
 }
 
+/* logo at the top */
 void logo(){
 	printf("Cooloo V1.0\n");
 }
@@ -550,20 +590,75 @@ void buttommsg(){
 			printf("\nPress P key at any time during the operating to PAUSE the programme.\nPress S and T key at the same time during the operating to STOP the programme.\n");
 			break;
 		case 0:
-			printf("Press R key at any time to RESUME.\nPress S and T key at the same time to STOP the programme.\n");
+			printf("\nPress R key at any time to RESUME.\nPress S and T key at the same time to STOP the programme.\n");
 			break;
 	}
 	
 }
 
+/* To print different type of error messages such as invalid configurations and invalid command, can be implemented more */
 void errormsg(int a){
 	switch (a){
 		case 1:
 			break;
 		
-		
-		
+
 	}
+	
+	
+}
+
+/*This function is used for writing to alerts history to the log file in the same folder*/	
+
+	/* 
+	device:standards for device number
+	good: 0 indicates setting up alert 1 indicates clearing alert
+	type: 1 temperature, can implement more later
+	*/
+void writemsg(int device, int good,int type){
+	
+
+	
+	//open the log file
+	FILE * fp;
+	fp = fopen ("log.txt","a");
+	
+	//read the current time
+	time_t now = time(0);
+	char buffer[100];
+	struct tm *ltm;
+	
+    ltm = localtime(&now);
+	
+	sprintf(buffer, "[%d.%d.%d]%d:%d:%d",(1900+ltm->tm_year),(1 + ltm->tm_mon),ltm->tm_mday,ltm->tm_hour,ltm->tm_min,ltm->tm_sec);
+//	printf("%s\n",buffer);
+
+	switch (type){
+		
+		/* temperature */
+		case 1:	
+		
+		switch (good){	
+			
+			//set up alert
+			case 0:
+				sprintf(buffer, "[%d.%d.%d]%d:%d:%d Device%d temperature alert raised",(1900+ltm->tm_year),(1 + ltm->tm_mon),ltm->tm_mday,ltm->tm_hour,ltm->tm_min,ltm->tm_sec,device);
+				fprintf (fp, "%s\n",buffer);
+				break;
+			
+			//clear alert
+			case 1:
+				sprintf(buffer, "[%d.%d.%d]%d:%d:%d Device%d temperature alert cleared",(1900+ltm->tm_year),(1 + ltm->tm_mon),ltm->tm_mday,ltm->tm_hour,ltm->tm_min,ltm->tm_sec,device);
+				fprintf (fp, "%s\n",buffer);
+				break;
+			
+		}
+		break;
+		
+		/* implement other alerts here */
+	}	
+	/* close the file*/  
+	fclose (fp);
 	
 	
 }
