@@ -55,10 +55,12 @@ struct Device{
 	*/
 };
 
+/* Data that storing in the system*/
 struct para{
 	int device;
-	int fault;	//-1 unknown, 0 fault, 1 working fine
 	int live;	//live result (in second)
+	int fault;	//temperature status: -1 unknown, 0 temperature fault, 1 temperature working fine
+	/* can implement more variables here for other features such as internet speed*/
 };
 
 struct Device list[10];	//create an array for the device
@@ -142,10 +144,9 @@ void* read(void* data){		//the thread that use for comparing the temperature of 
 //		next=0;
 		for (int i=temp2;i<active;i++){
 			
-//			current=result[i].device;
-	//			temp=tempscan(number[i]);
+			/* read temperature from device*/
 			int temp=tempscan(result[i].device);	//read the temperature data from device
-//			printf("%d %d %d \n",temp,list[result[i].device-1].templow,list[result[i].device-1].tempup);
+
 			
 			//check if the temp is in the range
 			
@@ -285,19 +286,13 @@ int main()
 		
 	}
 	
-	// for (i=0;i<10;i++){
-		// result[i].live=0;
-		
-	// }
-	
-	
-//	char buffer[33];
 	pthread_t t; 	//first thread UI
 	pthread_t t2; 	//second thread monitoring
 	
 	welcome();
+	
+	/* start loading the device configs*/
 	while (1){
-//		clrscr();
 		
 		printf("Loading configurations...\n");
 		sleep(1);
@@ -307,13 +302,31 @@ int main()
 			if(NULL == fp){	//check if the file is not existing
 			
 				printf("the device file is not exist\n");
+				
+				/* implement a function to wait to reload the file here*/
 
 			}
+			
+		/*
+
+		
+		implement a function here to check if 'device.txt' is a empty file
+
+		
+		*/
+		
+		/* if the file is exists and it isn't empty, then start scanning*/
 		
 		fscanf_s(fp,"%d",&x);	//how many devices we r entering
+		
+		/*check constrain*/
 		if (x>10){
 			printf("no more than 10 device\n");
+		}else{
+			
+			/* implement the here to due with case if more than device in the system */
 		}
+		
 		printf("There are %d devices details loaded\n" , x);
 
 		/* read the temperature configurations for each device*/
@@ -356,7 +369,7 @@ int main()
 		fclose(fp);
 		
 
-		
+		/* wait to confirm the configs */
 		while(1){
 			printf("Please confirm the device configurations. Enter Y to continue or N to reload:");
 			
@@ -653,6 +666,11 @@ int check(char c){	//
 	}
 }
 
+	/* 
+	function to print out what's the current cycle and what device will be check next. Can indicate if the programme is running, pausing or stopping.
+	input: status 
+	*/
+	
 void printprogress(int now){
 	printf("Current progress: ");
 	switch(mode){
@@ -671,6 +689,7 @@ void printprogress(int now){
 	
 }
 
+	/* welcome message with the logo of the programme*/
 void welcome(){
 	clrscr();
 	printf("Thank you for using Cooloo Device Monitoring Software\n");
@@ -684,6 +703,7 @@ void logo(){
 	printf("Cooloo V1.0 powered by 4rf \n");
 }
 
+	/* message to let the user know what key to be press*/
 void buttommsg(){
 	switch(mode){
 		case 1:
