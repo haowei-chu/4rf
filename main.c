@@ -60,7 +60,15 @@ struct para{
 	int device;
 	int live;	//live result (in second)
 	int fault;	//temperature status: -1 unknown, 0 temperature fault, 1 temperature working fine
-	/* can implement more variables here for other features such as internet speed*/
+	
+	
+	/* 
+	
+	
+	can implement more variables here for other features such as internet speed
+	
+	
+	*/
 };
 
 struct Device list[10];	//create an array for the device
@@ -69,8 +77,6 @@ struct Device list[10];	//create an array for the device
 int tempscan(int x);
 void clrscr();	//clear screen function
 void printstatus(int a,int b, int c);
-char readstring();
-int readnumber();
 int check(char c);
 void printprogress(int now);
 void welcome();
@@ -86,14 +92,13 @@ void unlock();
 
 
 void* UI(void* data) {
-  // char *str = (char*) data; 
-	struct para *result=(struct para*)data;	//input data
-//	for(int i = 0;i < 5;++i) {
+	
+	struct para *result=(struct para*)data;	//load input data	
 	
 	//while loop to display UI during the operation
 	while (mode!=2){
 		
-		//Normal UI for the programme
+		/* Normal UI for the programme */
 		clrscr();
 		logo();
 		
@@ -108,11 +113,9 @@ void* UI(void* data) {
 		
 		printf("Devices current status:\n");
 		for (int j=0;j<active;j++){
-			
-//			pthread_mutex_lock( &mutex1 ); // Mutex lock
+	
 			printstatus(result[j].device,result[j].fault,result[j].live);	//print the status out		
-//			result[j].live++;	//update the time for 1 second
-//			pthread_mutex_unlock( &mutex1 ); // Mutex unlock
+
 		}
 		buttommsg();
 		
@@ -123,15 +126,13 @@ void* UI(void* data) {
 		for (int j=(point-1);j>=0;j--){
 			printf("%s\n",msg[j]);
 			
-		}
-		
-//		printf("hi %d\nlive %d ago\n",result[i].device,result[i].fault); 	//Output in CMD every second
+		}		
 		
 		/* UI refreshing rate is 1 second*/
 		sleep(1);	
 	}
 	
-	//Display for stopping the programme
+	/*Display for stopping the programme*/
 	clrscr();
 	logo();
 	printprogress(2);
@@ -677,7 +678,6 @@ int tempscan(int n){
 
 
 /* clear screen */
-
 void clrscr(){
     system("@cls||clear");
 }
@@ -695,18 +695,7 @@ void printstatus(int a,int b, int c){
 	}
 }
 
-
-char readstring(){
-	char temp;
-	scanf_s("%s",&temp);
-	return temp;
-}
-int readnumber(){
-	int temp;
-	scanf_s("%d",&active);
-	return temp;
-}
-
+/* check keyboard pressing */
 int check(char c){	//
 	if(!KEY_DOWN(c)){
 		
@@ -848,6 +837,7 @@ void msgshiftup(){
 	
 }
 
+/*store message to the end of the array */
 void storemsg(){
 	/* storing the new alert message*/
 	if (point<10){
