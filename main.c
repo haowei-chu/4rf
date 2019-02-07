@@ -32,6 +32,8 @@ int pause=0;
 int next=0;
 char msg[10][100];
 int msgp=0;
+char msg2 [100];
+int point=0;
 
 
 
@@ -66,6 +68,8 @@ void logo();
 void buttommsg();
 void errormsg(int a);
 void writemsg(int device, int good,int type);
+void msgshiftup();
+void storemsg();
 
 void* UI(void* data) {
   // char *str = (char*) data; 
@@ -99,17 +103,18 @@ void* UI(void* data) {
 		buttommsg();
 		
 		
-		/*Print out the lastest 10 alert messages here */
-		/*
+		/*Print out the latest 10 alert messages here */
+		
 		printf("\nImportant messages(latest 10 if more than 10):\n");
-		for (int j=0;j<10;j++){
+		for (int j=(point-1);j>=0;j--){
 			printf("%s\n",msg[j]);
 			
 		}
-		*/
+		
 //		printf("hi %d\nlive %d ago\n",result[i].device,result[i].fault); 	//Output in CMD every second
 		
-		sleep(1);
+		/* UI refreshing rate is 1 second*/
+		sleep(1);	
 	}
 	
 	//Display for stopping the programme
@@ -157,7 +162,12 @@ void* read(void* data){		//the thread that use for comparing the temperature of 
 						//print error messages
 						
 						*/
+						
 						writemsg(result[i].device,0,1);
+						storemsg();
+
+						
+						
 					}
 					break;
 					
@@ -172,7 +182,7 @@ void* read(void* data){		//the thread that use for comparing the temperature of 
 						print update messages						
 						*/
 						writemsg(result[i].device,1,1);
-						
+						storemsg();
 						
 					}else{
 						
@@ -206,6 +216,7 @@ void* read(void* data){		//the thread that use for comparing the temperature of 
 						
 						*/
 						writemsg(result[i].device,0,1);
+						storemsg();
 					}					
 				
 					break;
@@ -643,12 +654,14 @@ void writemsg(int device, int good,int type){
 			//set up alert
 			case 0:
 				sprintf(buffer, "[%d.%d.%d]%d:%d:%d Device%d temperature alert raised",(1900+ltm->tm_year),(1 + ltm->tm_mon),ltm->tm_mday,ltm->tm_hour,ltm->tm_min,ltm->tm_sec,device);
+				strcpy(msg2,buffer);
 				fprintf (fp, "%s\n",buffer);
 				break;
 			
 			//clear alert
 			case 1:
 				sprintf(buffer, "[%d.%d.%d]%d:%d:%d Device%d temperature alert cleared",(1900+ltm->tm_year),(1 + ltm->tm_mon),ltm->tm_mday,ltm->tm_hour,ltm->tm_min,ltm->tm_sec,device);
+				strcpy(msg2,buffer);
 				fprintf (fp, "%s\n",buffer);
 				break;
 			
@@ -659,6 +672,24 @@ void writemsg(int device, int good,int type){
 	}	
 	/* close the file*/  
 	fclose (fp);
+}
+
+/* shift up the alert messages that stored in the memory*/
+void msgshiftup(){
+	for (int i=0;i<8;i++){
+		strcpy(msg[i],msg[i+1]);
+		
+	}
 	
-	
+}
+
+void storemsg(){
+	/* storing the new alert message*/
+	if (point<10){
+		strcpy(msg[point],msg2);
+		point++;
+	}else{
+		msgshiftup();
+		strcpy(msg[9],msg2);
+	}	
 }
