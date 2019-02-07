@@ -1,7 +1,7 @@
 10
 router
-30
 10
+30
 laptop
 30
 25
@@ -9,8 +9,8 @@ fan
 32
 10
 Aircon
-58
-21
+22
+48
 Coffeemachine
 30
 20
@@ -27,5 +27,5 @@ LED
 35
 30
 Printer
-19
+1000
 15

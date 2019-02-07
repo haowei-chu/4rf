@@ -20,36 +20,40 @@
 #pragma comment(lib, "User32.lib")
 #define KEY_DOWN(VK_NONAME) ((GetAsyncKeyState(VK_NONAME) & 0x8000) ? 1:0)
 
-
+/*Global variables*/
 int mode=1;	//mode 1: operating, mode 0: pausing, mode 2: stopping and waiting to exit
 int cycle=1;
 int x=0;
 int active=0;
 int rate;	//rate of monitoring
 int rate2;	//gap between each cycle
-int current=0;
+int current=0;	//current device that was being checked
 int pause=0;
-int next=0;
+int next=0;	//
 char msg[10][100];
 int msgp=0;
 char msg2 [100];
 int point=0;
 int config=1;
 
+/* temperature contrains */
+int high=999;
+int low=-999;
+
 
 
 // add Mutex for data modifying
 pthread_mutex_t mutex1 = PTHREAD_MUTEX_INITIALIZER;
 
+/* data structures*/
 struct Device{
 	char name[33];
 	int tempup;	//upper temperature threshold 
 	int templow;//lower temperature 
 	/*
-	others can be added here in the future 
+	more features can be added here
 	*/
 };
-struct Device list[10];	//create an array for the device
 
 struct para{
 	int device;
@@ -57,6 +61,9 @@ struct para{
 	int live;	//live result (in second)
 };
 
+struct Device list[10];	//create an array for the device
+
+/* headers*/
 int tempscan(int x);
 void clrscr();	//clear screen function
 void printstatus(int a,int b, int c);
@@ -71,6 +78,8 @@ void errormsg(int a);
 void writemsg(int device, int good,int type);
 void msgshiftup();
 void storemsg();
+
+
 
 void* UI(void* data) {
   // char *str = (char*) data; 
@@ -158,13 +167,13 @@ void* read(void* data){		//the thread that use for comparing the temperature of 
 						//if outside
 						result[i].fault=0;
 						
-						/*
 						
-						//print error messages
 						
-						*/
 						
+						/* print error message to log file*/
 						writemsg(result[i].device,0,1);
+						
+						/*store error message to print later*/
 						storemsg();
 
 						
@@ -179,10 +188,10 @@ void* read(void* data){		//the thread that use for comparing the temperature of 
 						//if inside the limits
 						result[i].fault=1;
 						
-						/*
-						print update messages						
-						*/
+						/* print error message to log file*/
 						writemsg(result[i].device,1,1);
+						
+						/*store error message to print later*/
 						storemsg();
 						
 					}else{
@@ -190,7 +199,6 @@ void* read(void* data){		//the thread that use for comparing the temperature of 
 						//if still outside
 						
 						//do nothing
-//						result[i].fault=0;
 						
 					}				
 				
@@ -205,18 +213,15 @@ void* read(void* data){		//the thread that use for comparing the temperature of 
 						//if still inside the limits
 						
 						//do nothing
-//						result[i].fault=1;
 					}else{
 						
 						//if changed to outside
 						result[i].fault=0;
 						
-						/*
-						
-						//print error messages
-						
-						*/
+						/* print error message to log file*/
 						writemsg(result[i].device,0,1);
+						
+						/*store error message to print later*/
 						storemsg();
 					}					
 				
@@ -236,9 +241,9 @@ void* read(void* data){		//the thread that use for comparing the temperature of 
 			if (mode==0) {
 //				printf("a\n");
 				if ((current+1)==active){
-					next=0;
+					next=0;	//start from first device after resuming
 				}else{
-					next=current+1;
+					next=current+1;	//start from next device after resuming
 					pthread_mutex_lock( &mutex1 ); // Mutex lock
 					cycle--;
 					pthread_mutex_unlock( &mutex1 ); // Mutex unlock
@@ -250,13 +255,14 @@ void* read(void* data){		//the thread that use for comparing the temperature of 
 			sleep(rate);	//break time between each device
 			
 		}	
+		
 		pthread_mutex_lock( &mutex1 ); // Mutex lock
-		cycle++;
-//		printf("finish one cycle\n");
+		cycle++;	//counting cycles
+
 		pthread_mutex_unlock( &mutex1 ); // Mutex unlock
-//		sleep(1);
+
 		temp2=0;
-		sleep(rate2-rate);
+		sleep(rate2-rate);	//wait time gate between 2 cycles
 	}	
 	
 	pthread_exit(NULL);
@@ -266,15 +272,10 @@ int main()
 {
 	
 	//create variables
-//	int x;	//how many devices
 	int i;	
 	char buffer[100];
-//	int active;	//
 	int temp;
-//	int c;
-//	int currenttemp[10];
-//	int live[10];
-//	struct Device list[10];	//create an array for the device
+
 	
 	struct para result[10];
 	for (i=0;i<10;i++){
@@ -315,11 +316,40 @@ int main()
 		}
 		printf("There are %d devices details loaded\n" , x);
 
-		
-		for (i=0;i<x;i++){	//load the config for each device
+		/* read the temperature configurations for each device*/
+		for (i=0;i<x;i++){	
 			fscanf(fp,"%s",&list[i].name); 
 			fscanf_s(fp,"%d",&list[i].tempup);
 			fscanf_s(fp,"%d",&list[i].templow);
+			
+			/*check constrains*/
+			if (list[i].tempup>high){
+				list[i].tempup=high;
+			}
+			if (list[i].tempup<low){
+				list[i].tempup=low;
+			}
+			
+			if (list[i].templow>high){
+				list[i].templow=high;
+			}
+			if (list[i].templow<low){
+				list[i].templow=low;
+			}
+			
+			
+			//swap for upper and lower limits
+			if (list[i].templow>list[i].tempup){
+				temp=list[i].templow;
+				list[i].templow=list[i].tempup;
+				list[i].tempup=temp;
+				
+			}
+			/*
+			
+			if other features such as memory usage threshold is added, please add more fscan functions here to load the values
+
+			*/
 			printf("Device %d is: %s with upper temperature limit of %d and lower temperature limit of %d \n" , (i+1) , list[i].name, list[i].tempup,list[i].templow);
 			
 		}
@@ -343,7 +373,8 @@ int main()
 				break;
 				
 			}else{
-				printf("Invalid. Please enter again\n");
+				errormsg(1);
+//				printf("Invalid. Please enter again\n");
 				continue;
 			}
 			
@@ -382,6 +413,7 @@ int main()
 	}
 	fclose(fp);// close file
 	
+	/* Display configs that loaded from config.txt*/
 	printf("Configs are showing here:\n");
 	printf("Monitoring %d devices:",active);
 	for (i=0;i<active;i++){
@@ -389,7 +421,7 @@ int main()
 	}
 	printf("\nRate of monitoring is %d seconds\nGap between each cycle is %d second\n",rate,rate2);
 	
-	printf("Would you like to use this config or enter them manually? Enter Y to use or enter N to enter them manually");
+	printf("Would you like to use this config or enter them manually? Enter Y to use or enter N to enter them manually:");
 	
 	while (1){
 		scanf_s("%s",&buffer);
@@ -401,7 +433,8 @@ int main()
 			break;
 			
 		}else{
-			printf("Invalid. Please enter again\n");
+			errormsg(1);
+//			printf("Invalid. Please enter again\n");
 			printf("Would you like to use this config or enter them manually? Enter Y to use or enter N to enter them manually:");
 		}
 	}
@@ -410,10 +443,13 @@ int main()
 	
 	switch(config){
 		case 0:
+		
+			/*  Entering number of devices that want to be monitored */
 			printf("Please enter the amount of device that would like to monitor:");
 			scanf_s("%d",&active);
 			while (active>x){
-				printf("Invalid. Please enter the number again.\n");
+				errormsg(1);
+				// printf("Invalid. Please enter the number again.\n");
 				printf("Please enter the amount of device that would like to monitor:");
 				scanf_s("%d",&active);
 			}
@@ -425,7 +461,8 @@ int main()
 				
 				scanf_s("%d",&temp);
 				while (temp>x){
-					printf("Invalid. Please enter the number again.\n");
+					errormsg(1);
+					// printf("Invalid. Please enter the number again.\n");
 					printf("Please enter the number # of device that would like to monitor and press enter:");
 					scanf_s("%d",&temp);
 				}
@@ -440,7 +477,8 @@ int main()
 				if (rate>=1){
 					break;
 				}else{
-					printf("Invalid. Please enter again.\n");
+					errormsg(1);
+					// printf("Invalid. Please enter again.\n");
 					continue;
 				}			
 			}
@@ -452,7 +490,8 @@ int main()
 				if (rate2>=rate){
 					break;
 				}else{
-					printf("Invalid. Please enter again.\n");
+					errormsg(1);
+					// printf("Invalid. Please enter again.\n");
 					continue;
 				}				
 			}
@@ -481,7 +520,8 @@ int main()
 					break;
 					
 				}else{
-					printf("Invalid. Please enter again.\n");
+					errormsg(1);
+//					printf("Invalid. Please enter again.\n");
 					printf("Would you like to save those configs so that be use in the future? Enter Y to save or enter N to skip");
 					continue;
 				}
@@ -497,14 +537,15 @@ int main()
 	pthread_create(&t, NULL, UI, &result); 	//create thread to continuously print out the monitoring result
 	pthread_create(&t2,NULL, read, &result);	//create thread to continuously check the temperature data
 	while (1){
-//		check('K');
+		
+		/* main function: checking key pressing */
 
-		//checking P Key
+		/*checking P Key*/
 		if (check('P')==1){
 			if (mode==1) mode=0;
-//			sleep(2);
+
 		}
-		
+		/*checking R Key*/
 		if (check('R')==1){
 			while (check('R')==1){
 				
@@ -513,40 +554,27 @@ int main()
 				
 				mode=1;
 				pthread_create(&t2,NULL, read, &result);	//create thread to continuously check the temperature data
-//				printf("back to mode 1\n");
+
 			}
 
-//			Sleep(2);
+
 		}
-		
+		/*checking S and T Key*/
 		if (check ('S')==1 && check('T')==1){
 			mode=2;
 			
 			
 			break;
 		}
+		
+		/* set wait time to 20ms is fast enough for physical pressing*/
 		Sleep(20);
-		
-		
-		
-//		for (i=0;i<active;i++){
-//			temp=tempscan(number[i]);
-//			temp=tempscan(result[i].device);	//read the temperature data from device
-//			if (temp>=list[i])
-//			clrscr();
-//			printf("tempeture is %d\n",temp);
-			
-//			sleep(rate);
-//		}
 
 	}
 	
 	pthread_join(t, NULL); 		//wait for thread 1
 	pthread_join(t2, NULL); 	//wait for thread 2
 	
-	
-	
-//	printf("Hello World!");
 	return 0;
 }
 
@@ -581,10 +609,16 @@ int tempscan(int n){
 	return c;
 }
 
+
+
+/* clear screen */
+
 void clrscr(){
     system("@cls||clear");
 }
 
+
+/* input: device number, devices current status, last update time (in second)*/ 
 void printstatus(int a,int b, int c){
 	if (b==-1){
 		printf("%s status is unknown\n",list[a-1].name);
@@ -647,7 +681,7 @@ void welcome(){
 
 /* logo at the top */
 void logo(){
-	printf("Cooloo V1.0\n");
+	printf("Cooloo V1.0 powered by 4rf \n");
 }
 
 void buttommsg(){
