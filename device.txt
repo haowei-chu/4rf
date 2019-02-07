@@ -1,4 +1,4 @@
-4
+10
 router
 30
 10
@@ -11,3 +11,21 @@ fan
 Aircon
 58
 21
+Coffeemachine
+30
+20
+Desk
+20
+10
+Fridge
+80
+20
+Door
+29
+22
+LED
+35
+30
+Printer
+19
+15

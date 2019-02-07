@@ -34,6 +34,7 @@ char msg[10][100];
 int msgp=0;
 char msg2 [100];
 int point=0;
+int config=1;
 
 
 
@@ -53,7 +54,7 @@ struct Device list[10];	//create an array for the device
 struct para{
 	int device;
 	int fault;	//-1 unknown, 0 fault, 1 working fine
-	int live;
+	int live;	//live result (in second)
 };
 
 int tempscan(int x);
@@ -105,7 +106,7 @@ void* UI(void* data) {
 		
 		/*Print out the latest 10 alert messages here */
 		
-		printf("\nImportant messages(latest 10 if more than 10):\n");
+		printf("\nImportant messages(latest 10 if more than 10, from latest to oldest):\n");
 		for (int j=(point-1);j>=0;j--){
 			printf("%s\n",msg[j]);
 			
@@ -120,7 +121,7 @@ void* UI(void* data) {
 	//Display for stopping the programme
 	clrscr();
 	logo();
-	printprogress(NULL);
+	printprogress(2);
 	
 	pthread_exit(NULL); 	//exit the thread
 }
@@ -231,9 +232,7 @@ void* read(void* data){		//the thread that use for comparing the temperature of 
 			result[i].live=0;
 			pthread_mutex_unlock( &mutex1 ); // Mutex unlock
 			
-	//			clrscr();
-//			printf("tempeture is %d\n",temp);
-//			printf("b\n");
+			/* mathematic calculations when the programme is pause*/
 			if (mode==0) {
 //				printf("a\n");
 				if ((current+1)==active){
@@ -246,13 +245,15 @@ void* read(void* data){		//the thread that use for comparing the temperature of 
 				} 
 				break;
 			}
+			
+			
 			sleep(rate);	//break time between each device
 			
 		}	
-//		pthread_mutex_lock( &mutex1 ); // Mutex lock
+		pthread_mutex_lock( &mutex1 ); // Mutex lock
 		cycle++;
 //		printf("finish one cycle\n");
-//		pthread_mutex_unlock( &mutex1 ); // Mutex unlock
+		pthread_mutex_unlock( &mutex1 ); // Mutex unlock
 //		sleep(1);
 		temp2=0;
 		sleep(rate2-rate);
@@ -299,46 +300,14 @@ int main()
 		
 		printf("Loading configurations...\n");
 		sleep(1);
-//		while(1){
+
 		FILE *fp=fopen("device.txt", "r");//open the txt file that contains the data of the devices
-//		while(1){
+
 			if(NULL == fp){	//check if the file is not existing
 			
 				printf("the device file is not exist\n");
-//				fclose(fp);
-				
-				// while (1){
-					// printf("Please place the device.txt file in the same folder with this programme, and Enter T to reload.\n");
-					// scanf_s("%s",&buffer);
-					// if(buffer[0]=='T'){
-						
-						// FILE *fp=fopen("device.txt", "r");//open the txt file that contains the data of the devices
-						// break;
-					// }else{
-						// printf("Invalid.\n");
-						// continue; 
-						
-					// }
-				// }	
-			// }else{
-				// break;
+
 			}
-//		}
-			// else {
-			// fseek (fp, 0, SEEK_END);	//check if the file is empty
-			// c = ftell(fp);
-		// }
-		// if (0 == c) {
-			// printf("file is empty\n");
-		// }
-		
-		// if(NULL = fgetc(fp)){
-			// printf("the device file is empty\n");
-		// }
-		
-		
-		
-		
 		
 		fscanf_s(fp,"%d",&x);	//how many devices we r entering
 		if (x>10){
@@ -386,57 +355,143 @@ int main()
 	
 	/* end of device configurations part */
 	
+	clrscr();
 	
+	/* Load from config from local*/
+	FILE *fp=fopen("config.txt", "r");//open the txt file that contains the rest of the config
+	
+	if(NULL == fp){	//check if the file is not existing
+	
+		printf("the config file is not exist\n");
+
+	}else{
+		
+		/* how many device want to be monitored*/
+		fscanf_s(fp,"%d",&active);
+		
+		/* what are their number*/
+		for (i=0;i<active;i++){
+			
+			fscanf_s(fp,"%d",&result[i].device);
+		}
+		/* entering rate of monitoring */
+		fscanf_s(fp,"%d",&rate);
+		
+		/* Entering gap between each cycle*/
+		fscanf_s(fp,"%d",&rate2);
+	}
+	fclose(fp);// close file
+	
+	printf("Configs are showing here:\n");
+	printf("Monitoring %d devices:",active);
+	for (i=0;i<active;i++){
+		printf("%d ",result[i].device);
+	}
+	printf("\nRate of monitoring is %d seconds\nGap between each cycle is %d second\n",rate,rate2);
+	
+	printf("Would you like to use this config or enter them manually? Enter Y to use or enter N to enter them manually");
+	
+	while (1){
+		scanf_s("%s",&buffer);
+		if (buffer[0]=='Y'){
+			config=1;
+			break;
+		}else if(buffer[0]=='N'){
+			config=0;
+			break;
+			
+		}else{
+			printf("Invalid. Please enter again\n");
+			printf("Would you like to use this config or enter them manually? Enter Y to use or enter N to enter them manually:");
+		}
+	}
 	/* start of entering rest of config*/
 	
-//	printf("Would you like to load the rest of configurations from TXT file or enter them manually? Enter ");
-	printf("Please enter the amount of device that would like to monitor:");
-	scanf_s("%d",&active);
-	while (active>x){
-		printf("Invalid. Please enter the number again.\n");
-		printf("Please enter the amount of device that would like to monitor:");
-		scanf_s("%d",&active);
-	}
 	
-	int number[10];
-	for (i=0;i<active;i++){
-		printf("Please enter the number # of device that would like to monitor and press enter:");
-		
-		scanf_s("%d",&temp);
-		while (temp>x){
-			printf("Invalid. Please enter the number again.\n");
-			printf("Please enter the number # of device that would like to monitor and press enter:");
-			scanf_s("%d",&temp);
-		}
-//		number[i]=temp;
-		result[i].device=temp;
-	}
-	
-	//entering rate of monitoring
-	while (1){
-		printf("Please enter the rate of monitoring(by seconds),equal or greater than 1:");
-		scanf_s("%d",&rate);
-		if (rate>=1){
+	switch(config){
+		case 0:
+			printf("Please enter the amount of device that would like to monitor:");
+			scanf_s("%d",&active);
+			while (active>x){
+				printf("Invalid. Please enter the number again.\n");
+				printf("Please enter the amount of device that would like to monitor:");
+				scanf_s("%d",&active);
+			}
+			
+			int number[10];
+			printf("Please enter the number # of device that would like to monitor in ascending order, one number at a time\n");
+			for (i=0;i<active;i++){
+				printf("Please enter the number # of device that would like to monitor and press enter:");
+				
+				scanf_s("%d",&temp);
+				while (temp>x){
+					printf("Invalid. Please enter the number again.\n");
+					printf("Please enter the number # of device that would like to monitor and press enter:");
+					scanf_s("%d",&temp);
+				}
+		//		number[i]=temp;
+				result[i].device=temp;
+			}
+			
+			/* entering rate of monitoring */
+			while (1){
+				printf("Please enter the rate of monitoring(by seconds),equal or greater than 1:");
+				scanf_s("%d",&rate);
+				if (rate>=1){
+					break;
+				}else{
+					printf("Invalid. Please enter again.\n");
+					continue;
+				}			
+			}
+			
+			/* Entering gap between each cycle*/
+			while (1){
+				printf("Please enter the the gap time between each cycle(by seconds), larger or equal to rate of monitoring:");
+				scanf_s("%d",&rate2);
+				if (rate2>=rate){
+					break;
+				}else{
+					printf("Invalid. Please enter again.\n");
+					continue;
+				}				
+			}
+			/* end of manually entering configs*/
+			
+			/*option to save the configs locally*/
+			printf("Would you like to save those configs so that be use in the future? Enter Y to save or enter N to skip");
+			
+			while (1){
+				scanf_s("%s",&buffer);
+				if (buffer[0]=='Y'){
+				
+					FILE * fp;	//open file
+					fp = fopen ("config.txt","w");
+					fprintf (fp, "%d\n",active);
+					for (i=0;i<active;i++){
+						fprintf (fp, "%d\n",result[i].device);
+					}
+					
+					fprintf (fp, "%d\n",rate);
+					fprintf(fp, "%d",rate2);
+					
+					fclose (fp); //close file
+					break;
+				}else if (buffer[0]=='N'){
+					break;
+					
+				}else{
+					printf("Invalid. Please enter again.\n");
+					printf("Would you like to save those configs so that be use in the future? Enter Y to save or enter N to skip");
+					continue;
+				}
+			}
+			
+			
 			break;
-		}else{
-			printf("Invalid. Please enter again.\n");
-			continue;
-		}			
-	}
-	
-	//
-	while (1){
-		printf("Please enter the the gap time between each cycle(by seconds), larger or equal to rate of monitoring:");
-		scanf_s("%d",&rate2);
-		if (rate2>=rate){
+		case 1:
 			break;
-		}else{
-			printf("Invalid. Please enter again.\n");
-			continue;
-		}				
 	}
-	
-//	tempscan(3);
 	
 	
 	pthread_create(&t, NULL, UI, &result); 	//create thread to continuously print out the monitoring result
@@ -532,12 +587,12 @@ void clrscr(){
 
 void printstatus(int a,int b, int c){
 	if (b==-1){
-		printf("Device %d status is unknown\n",a);
+		printf("%s status is unknown\n",list[a-1].name);
 	}else if (b==1){
-		printf("Device %d is working fine. Last update %d seconds ago\n",a,c);
+		printf("%s is working fine. Last update %d seconds ago\n",list[a-1].name,c);
 		
 	}else{
-		printf("Device %d is not working fine. Last update %d seconds ago\n",a,c);
+		printf("%s is not working fine. Last update %d seconds ago\n",list[a-1].name,c);
 	}
 }
 
@@ -568,7 +623,7 @@ void printprogress(int now){
 	printf("Current progress: ");
 	switch(mode){
 		case 1:
-			printf("Cycles %d waiting to check device %d\n",cycle,now);
+			printf("Cycles %d waiting to check %s\n",cycle,list[now-1].name);
 			break;
 			
 		case 0:
@@ -611,6 +666,7 @@ void buttommsg(){
 void errormsg(int a){
 	switch (a){
 		case 1:
+			printf("Invalid. Please enter again\n");
 			break;
 		
 
@@ -623,7 +679,7 @@ void errormsg(int a){
 
 	/* 
 	device:standards for device number
-	good: 0 indicates setting up alert 1 indicates clearing alert
+	good: 0 indicates setting up alert, 1 indicates clearing alert
 	type: 1 temperature, can implement more later
 	*/
 void writemsg(int device, int good,int type){
@@ -653,14 +709,14 @@ void writemsg(int device, int good,int type){
 			
 			//set up alert
 			case 0:
-				sprintf(buffer, "[%d.%d.%d]%d:%d:%d Device%d temperature alert raised",(1900+ltm->tm_year),(1 + ltm->tm_mon),ltm->tm_mday,ltm->tm_hour,ltm->tm_min,ltm->tm_sec,device);
+				sprintf(buffer, "[%d.%d.%d]%d:%d:%d %s temperature alert raised",(1900+ltm->tm_year),(1 + ltm->tm_mon),ltm->tm_mday,ltm->tm_hour,ltm->tm_min,ltm->tm_sec,list[device-1].name);
 				strcpy(msg2,buffer);
 				fprintf (fp, "%s\n",buffer);
 				break;
 			
 			//clear alert
 			case 1:
-				sprintf(buffer, "[%d.%d.%d]%d:%d:%d Device%d temperature alert cleared",(1900+ltm->tm_year),(1 + ltm->tm_mon),ltm->tm_mday,ltm->tm_hour,ltm->tm_min,ltm->tm_sec,device);
+				sprintf(buffer, "[%d.%d.%d]%d:%d:%d %s temperature alert cleared",(1900+ltm->tm_year),(1 + ltm->tm_mon),ltm->tm_mday,ltm->tm_hour,ltm->tm_min,ltm->tm_sec,list[device-1].name);
 				strcpy(msg2,buffer);
 				fprintf (fp, "%s\n",buffer);
 				break;
