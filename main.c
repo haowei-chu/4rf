@@ -485,7 +485,7 @@ int main()
 		printf("Would you like to use this config or enter them manually? Enter Y to use or enter N to enter them manually:");
 
 		while (1){
-			scanf_s("%s",&buffer);
+			fgets(buffer, sizeof(buffer), stdin);
 			if (buffer[0]=='Y'){
 				config=1;
 				break;
@@ -566,7 +566,7 @@ int main()
 			printf("Would you like to save those configs so that be use in the future? Enter Y to save or enter N to skip");
 			
 			while (1){
-				scanf_s("%s",&buffer);
+				fgets(buffer, sizeof(buffer), stdin);
 				if (buffer[0]=='Y'){
 				
 					FILE * fp;	//open file
