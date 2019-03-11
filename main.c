@@ -413,7 +413,7 @@ int main()
 			
 			
 			
-			scanf_s("%s",&buffer);
+			buffer=getchar();
 //			strcpy(buffer, readstring());
 
 
