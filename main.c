@@ -301,6 +301,7 @@ int main()
 	//create variables
 	int i;	
 	char buffer[100];
+	char buffer2[100];
 	int temp;
 
 	
@@ -562,12 +563,14 @@ int main()
 			}
 			/* end of manually entering configs*/
 			
+			
+			
 			/*option to save the configs locally*/
-			printf("Would you like to save those configs so that be use in the future? Enter Y to save or enter N to skip");
+			puts("Would you like to save those configs so that it could be used again in the future? Enter Y to save or enter N to skip");
 			
 			while (1){
-				fgets(buffer, sizeof(buffer), stdin);
-				if (buffer[0]=='Y'){
+				fgets(buffer2, sizeof(buffer2), stdin);
+				if (buffer2[0]=='Y'){
 				
 					FILE * fp;	//open file
 					fp = fopen ("config.txt","w");
@@ -581,7 +584,7 @@ int main()
 					
 					fclose (fp); //close file
 					break;
-				}else if (buffer[0]=='N'){
+				}else if (buffer2[0]=='N'){
 					break;
 					
 				}else{
