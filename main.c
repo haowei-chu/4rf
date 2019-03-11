@@ -413,7 +413,7 @@ int main()
 			
 			
 			
-			buffer=getchar();
+			fgets(buffer, sizeof(buffer), stdin);
 //			strcpy(buffer, readstring());
 
 
